@@ -1,5 +1,24 @@
+pydantic
 fastapi
 uvicorn
 pandas
 scikit-learn
 joblib
+
+fastapi
+uvicorn
+pandas
+scikit-learn
+joblib
+jinja2
+python-multipart
+
+# Database
+sqlalchemy
+psycopg2-binary
+
+# Redis
+redis
+
+# Env
+python-dotenv

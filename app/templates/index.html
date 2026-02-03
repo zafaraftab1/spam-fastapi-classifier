@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Spam Classifier</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>📩 Spam Email Classifier</h1>
+    <p class="subtitle">FastAPI + ML + Redis + PostgreSQL</p>
+
+    <textarea id="message" placeholder="Type your message here..."></textarea>
+
+    <button onclick="predictSpam()">Check Message</button>
+
+    <div id="resultBox" class="result hidden">
+      <h2 id="predictionText"></h2>
+      <p id="confidenceText"></p>
+    </div>
+  </div>
+
+  <script>
+    async function predictSpam() {
+      const msg = document.getElementById("message").value;
+
+      const res = await fetch("/api/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg })
+      });
+
+      const data = await res.json();
+
+      document.getElementById("resultBox").classList.remove("hidden");
+      document.getElementById("predictionText").innerText = data.prediction;
+      document.getElementById("confidenceText").innerText = "Confidence: " + data.confidence;
+    }
+  </script>
+</body>
+</html>
