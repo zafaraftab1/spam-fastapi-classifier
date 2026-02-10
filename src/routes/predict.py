@@ -1,19 +1,29 @@
+from typing import Optional
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 import redis
 import json
 
-from app.schemas import MessageRequest
-from app.database import SessionLocal
-from app.crud import save_prediction
-from app.ml.preprocess import clean_text
-from app.ml.model_utils import load_artifacts
-from app.config import REDIS_URL
+from ..schemas import MessageRequest
+from ..database import SessionLocal
+from ..crud import save_prediction
+from ..ML.preproccess import clean_text
+from ..ML.model_utils import load_artifacts
+from ..config import REDIS_URL
 
 router = APIRouter()
 
+# Load model artifacts (will raise a clear FileNotFoundError if missing)
 model, vectorizer = load_artifacts()
-r = redis.from_url(REDIS_URL, decode_responses=True)
+
+# Initialize Redis if URL provided; otherwise disable caching
+_r = None
+if REDIS_URL:
+    try:
+        _r = redis.from_url(REDIS_URL, decode_responses=True)
+    except Exception:
+        _r = None
+
 
 def get_db():
     db = SessionLocal()
@@ -31,10 +41,14 @@ def predict_api(request: MessageRequest, db: Session = Depends(get_db)):
     # ✅ Redis key
     cache_key = f"spam_pred:{cleaned}"
 
-    # ✅ Check cache
-    cached = r.get(cache_key)
-    if cached:
-        return json.loads(cached)
+    # ✅ Check cache (only if redis configured)
+    if _r:
+        try:
+            cached = _r.get(cache_key)
+        except Exception:
+            cached = None
+        if cached:
+            return json.loads(cached)
 
     # ✅ Vectorize + Predict
     vec = vectorizer.transform([cleaned])
@@ -48,10 +62,18 @@ def predict_api(request: MessageRequest, db: Session = Depends(get_db)):
         "confidence": round(confidence, 4)
     }
 
-    # ✅ Save to DB
-    save_prediction(db, request.message, result["prediction"], result["confidence"])
+    # ✅ Save to DB (works with SQLite fallback)
+    try:
+        save_prediction(db, request.message, result["prediction"], result["confidence"])
+    except Exception:
+        # Don't fail the whole request if DB save fails
+        pass
 
-    # ✅ Save in Redis cache
-    r.set(cache_key, json.dumps(result), ex=3600)  # 1 hour cache
+    # ✅ Save in Redis cache if available
+    if _r:
+        try:
+            _r.set(cache_key, json.dumps(result), ex=3600)  # 1 hour cache
+        except Exception:
+            pass
 
     return result

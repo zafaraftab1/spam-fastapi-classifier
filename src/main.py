@@ -1,18 +1,20 @@
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app.routes.predict import router as predict_router
-from app.routes.ui import router as ui_router
-from app.database import Base, engine
-from app.config import APP_NAME
+from .routes.predict import router as predict_router
+from .routes.ui import router as ui_router
+from .database import Base, engine
+from .config import APP_NAME
 
 app = FastAPI(title=APP_NAME, version="3.0")
 
-# ✅ Create DB tables automatically
+# ✅ Create DB tables automatically (engine is safe to create a fallback SQLite in database.py)
 Base.metadata.create_all(bind=engine)
 
-# ✅ Static files
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+# ✅ Static files (use package-relative path)
+static_dir = str(Path(__file__).resolve().parents[1] / "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # ✅ Routes
 app.include_router(ui_router)
