@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models import PredictionLog
+from .models import PredictionLog
 
 def save_prediction(db: Session, message: str, prediction: str, confidence: float):
     row = PredictionLog(

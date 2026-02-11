@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime
 from datetime import datetime
-from app.database import Base
+from .database import Base
 
 class PredictionLog(Base):
     __tablename__ = "prediction_logs"

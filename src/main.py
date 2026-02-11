@@ -13,7 +13,7 @@ app = FastAPI(title=APP_NAME, version="3.0")
 Base.metadata.create_all(bind=engine)
 
 # ✅ Static files (use package-relative path)
-static_dir = str(Path(__file__).resolve().parents[1] / "static")
+static_dir = str(Path(__file__).resolve().parent / "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # ✅ Routes

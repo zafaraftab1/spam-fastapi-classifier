@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spam Email Classifier - AI-Powered Detection</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="stars"></div>
+
+  <div class="container">
+    <div class="header">
+      <h1>📧 Spam Email Classifier</h1>
+      <p class="subtitle">AI-Powered Email Detection using Machine Learning</p>
+    </div>
+
+    <form onsubmit="predictSpam(event)" class="form-group">
+      <div class="input-wrapper">
+        <textarea
+          id="message"
+          class="message-input"
+          placeholder="Paste your email message here..."
+          required
+          maxlength="5000"
+        ></textarea>
+        <div class="char-count">
+          <span id="charCount">0</span>/5000
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button type="submit" class="btn btn-primary" id="predictBtn">
+          <span class="btn-text">🔍 Analyze Message</span>
+          <span class="btn-loader hidden"></span>
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="clearForm()">Clear</button>
+      </div>
+    </form>
+
+    <!-- Result Section -->
+    <div id="resultBox" class="result-box hidden">
+      <div class="result-header">
+        <h2 id="predictionText" class="prediction-badge"></h2>
+      </div>
+      <div class="result-details">
+        <div class="confidence-section">
+          <p class="label">Confidence Score</p>
+          <div class="confidence-bar">
+            <div id="confidenceBar" class="confidence-fill"></div>
+          </div>
+          <p id="confidenceText" class="confidence-value"></p>
+        </div>
+        <div class="analysis-info">
+          <p><strong>Status:</strong> <span id="statusText"></span></p>
+          <p class="disclaimer">✓ Analysis complete. Always verify important emails manually.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Section -->
+    <div id="errorBox" class="error-box hidden">
+      <p id="errorText"></p>
+      <button type="button" class="btn btn-small" onclick="closeError()">Dismiss</button>
+    </div>
+
+    <!-- Example Messages -->
+    <div class="examples">
+      <h3>Try Example Messages:</h3>
+      <div class="example-buttons">
+        <button type="button" class="example-btn" onclick="loadExample('Congratulations! You have won $1,000,000. Click here to claim your prize now!')">
+          Spam Example
+        </button>
+        <button type="button" class="example-btn" onclick="loadExample('Hi, Please find the meeting agenda attached. The meeting is scheduled for tomorrow at 2 PM. Let me know if you have any questions.')">
+          Ham Example
+        </button>
+      </div>
+    </div>
+
+    <!-- API Info -->
+    <div class="api-info">
+      <p>📡 <strong>API Endpoint:</strong> POST /api/predict</p>
+      <p>📚 <strong>Documentation:</strong> <a href="/docs" target="_blank">View API Docs</a></p>
+    </div>
+  </div>
+
+  <script>
+    // Character counter
+    document.getElementById("message").addEventListener("input", function() {
+      document.getElementById("charCount").textContent = this.value.length;
+    });
+
+    // Load example message
+    function loadExample(text) {
+      document.getElementById("message").value = text;
+      document.getElementById("charCount").textContent = text.length;
+      document.getElementById("resultBox").classList.add("hidden");
+      document.getElementById("errorBox").classList.add("hidden");
+    }
+
+    // Clear form
+    function clearForm() {
+      document.getElementById("message").value = "";
+      document.getElementById("charCount").textContent = "0";
+      document.getElementById("resultBox").classList.add("hidden");
+      document.getElementById("errorBox").classList.add("hidden");
+    }
+
+    // Close error
+    function closeError() {
+      document.getElementById("errorBox").classList.add("hidden");
+    }
+
+    // Show error
+    function showError(message) {
+      document.getElementById("errorText").textContent = message;
+      document.getElementById("errorBox").classList.remove("hidden");
+    }
+
+    // Predict spam
+    async function predictSpam(event) {
+      event.preventDefault();
+
+      const msg = document.getElementById("message").value.trim();
+
+      if (!msg) {
+        showError("Please enter a message to analyze.");
+        return;
+      }
+
+      // Show loading state
+      const btn = document.getElementById("predictBtn");
+      const btnText = btn.querySelector(".btn-text");
+      const btnLoader = btn.querySelector(".btn-loader");
+      btn.disabled = true;
+      btnText.classList.add("hidden");
+      btnLoader.classList.remove("hidden");
+
+      try {
+        const res = await fetch("/api/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: msg })
+        });
+
+        if (!res.ok) {
+          throw new Error(`Server error: ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        // Display result
+        document.getElementById("resultBox").classList.remove("hidden");
+        document.getElementById("errorBox").classList.add("hidden");
+
+        const isSpam = data.prediction.includes("SPAM");
+        const confidence = data.confidence * 100;
+
+        document.getElementById("predictionText").innerHTML = data.prediction;
+        document.getElementById("predictionText").className =
+          "prediction-badge " + (isSpam ? "spam" : "ham");
+
+        document.getElementById("confidenceText").textContent =
+          `${confidence.toFixed(2)}%`;
+
+        const confidenceBar = document.getElementById("confidenceBar");
+        confidenceBar.style.width = confidence + "%";
+        confidenceBar.className = "confidence-fill " +
+          (confidence > 70 ? (isSpam ? "high-spam" : "high-ham") : "medium");
+
+        document.getElementById("statusText").textContent =
+          isSpam ? "Likely SPAM" : "Likely LEGITIMATE";
+
+      } catch (error) {
+        showError("Error analyzing message: " + error.message);
+      } finally {
+        btn.disabled = false;
+        btnText.classList.remove("hidden");
+        btnLoader.classList.add("hidden");
+      }
+    }
+  </script>
+</body>
+</html>
+
